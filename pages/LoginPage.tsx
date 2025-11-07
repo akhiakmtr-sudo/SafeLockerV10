@@ -1,37 +1,27 @@
-
 import React, { useState } from 'react';
-import { Page, User } from '../types';
-import { Auth } from '../services/amplifyService';
+import { Page } from '../types';
+import { useAuth } from '../auth/useAuth';
 
 interface LoginPageProps {
   navigateTo: (page: Page) => void;
-  onLoginSuccess: (user: User) => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ navigateTo, onLoginSuccess }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ navigateTo }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const validatePassword = (pw: string) => {
-    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(pw);
-  };
+  const { signIn } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!validatePassword(password)) {
-      setError('Password must be at least 8 characters long, and include an uppercase letter, a lowercase letter, a number, and a symbol.');
-      return;
-    }
-
     setLoading(true);
     try {
-      const user = await Auth.signIn(email, password);
-      onLoginSuccess(user);
-      navigateTo('dashboard');
+      const result = await signIn({ username: email, password });
+      if (result.isSignedIn) {
+        navigateTo('dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -96,4 +86,3 @@ const LoginPage: React.FC<LoginPageProps> = ({ navigateTo, onLoginSuccess }) => 
 };
 
 export default LoginPage;
-   

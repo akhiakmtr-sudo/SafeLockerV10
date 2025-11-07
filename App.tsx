@@ -1,51 +1,34 @@
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage from './pages/DashboardPage';
-import { Page, User } from './types';
-import { Auth } from './services/amplifyService';
+import { Page } from './types';
+import { useAuth } from './auth/useAuth';
 
 const App: React.FC = () => {
+  const { user, isLoading, signOut } = useAuth();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const checkCurrentUser = useCallback(async () => {
-    setLoading(true);
-    try {
-      const currentUser = await Auth.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        setCurrentPage('dashboard');
-      } else {
-        setCurrentPage('landing');
-      }
-    } catch (error) {
-      console.error('No current user', error);
-      setCurrentPage('landing');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    checkCurrentUser();
-  }, [checkCurrentUser]);
+    if (!isLoading) {
+      if (user) {
+        setCurrentPage('dashboard');
+      } else {
+        // Stay on auth pages if already there, otherwise go to landing
+        if (currentPage !== 'login' && currentPage !== 'signup' && currentPage !== 'forgotPassword') {
+            setCurrentPage('landing');
+        }
+      }
+    }
+  }, [user, isLoading, currentPage]);
 
   const navigateTo = (page: Page) => {
     setCurrentPage(page);
   };
 
-  const handleSignOut = async () => {
-    await Auth.signOut();
-    setUser(null);
-    navigateTo('landing');
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-br from-cyan-50 to-blue-100">
         <div className="text-2xl font-semibold text-gray-700">Loading...</div>
@@ -54,15 +37,17 @@ const App: React.FC = () => {
   }
 
   const renderPage = () => {
+    if (user) {
+        return <DashboardPage user={user} onSignOut={signOut} />;
+    }
+
     switch (currentPage) {
       case 'login':
-        return <LoginPage navigateTo={navigateTo} onLoginSuccess={setUser} />;
+        return <LoginPage navigateTo={navigateTo} />;
       case 'signup':
-        return <SignupPage navigateTo={navigateTo} onSignupSuccess={setUser} />;
+        return <SignupPage navigateTo={navigateTo} />;
       case 'forgotPassword':
         return <ForgotPasswordPage navigateTo={navigateTo} />;
-      case 'dashboard':
-        return user ? <DashboardPage user={user} onSignOut={handleSignOut} /> : <LoginPage navigateTo={navigateTo} onLoginSuccess={setUser} />;
       case 'landing':
       default:
         return <LandingPage navigateTo={navigateTo} />;
@@ -77,4 +62,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-   

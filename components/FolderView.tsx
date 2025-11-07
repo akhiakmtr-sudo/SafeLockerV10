@@ -1,12 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
-import { FileItem, FolderType } from '../types';
+import { MediaItem, FolderType } from '../types';
 import FileItemComponent from './FileItem';
 
 interface FolderViewProps {
   title: FolderType;
-  files: FileItem[];
-  onDelete: (key: string) => void;
+  files: MediaItem[];
+  onDelete: (id: string, key: string) => void;
 }
 
 const FolderView: React.FC<FolderViewProps> = ({ title, files, onDelete }) => {
@@ -14,8 +13,8 @@ const FolderView: React.FC<FolderViewProps> = ({ title, files, onDelete }) => {
 
   const sortedFiles = useMemo(() => {
     return [...files].sort((a, b) => {
-      const dateA = a.lastModified.getTime();
-      const dateB = b.lastModified.getTime();
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
       return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
   }, [files, sortOrder]);
@@ -51,7 +50,7 @@ const FolderView: React.FC<FolderViewProps> = ({ title, files, onDelete }) => {
       {sortedFiles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sortedFiles.map((file) => (
-            <FileItemComponent key={file.key} file={file} onDelete={onDelete} />
+            <FileItemComponent key={file.id} file={file} onDelete={onDelete} />
           ))}
         </div>
       ) : (
@@ -62,4 +61,3 @@ const FolderView: React.FC<FolderViewProps> = ({ title, files, onDelete }) => {
 };
 
 export default FolderView;
-   

@@ -1,26 +1,30 @@
 
-import { FileItem, User } from '../types';
+
+import { MediaItem, User } from '../types';
 
 // --- MOCK DATA ---
 const MOCK_USER: User = {
   username: 'testuser',
+  // FIX: Added missing userId property to conform to the User type.
+  userId: 'mock-user-id',
   attributes: {
     name: 'Test User',
     email: 'test@example.com',
   },
 };
 
-let MOCK_DB: { [key: string]: FileItem[] } = {
+// FIX: Replaced FileItem with MediaItem and updated data structure to match.
+let MOCK_DB: { [key: string]: MediaItem[] } = {
   'photos/': [
-    { key: 'photos/vacation.jpg', lastModified: new Date('2023-10-26'), size: 2048000 },
-    { key: 'photos/family.png', lastModified: new Date('2023-09-15'), size: 5120000 },
+    { id: 'mock1', owner: 'testuser', filename: 'vacation.jpg', key: 'photos/vacation.jpg', fileType: 'image/jpeg', folder: 'photos', createdAt: new Date('2023-10-26').toISOString(), size: 2048000 },
+    { id: 'mock2', owner: 'testuser', filename: 'family.png', key: 'photos/family.png', fileType: 'image/png', folder: 'photos', createdAt: new Date('2023-09-15').toISOString(), size: 5120000 },
   ],
   'videos/': [
-    { key: 'videos/birthday.mp4', lastModified: new Date('2023-11-01'), size: 150000000 },
+    { id: 'mock3', owner: 'testuser', filename: 'birthday.mp4', key: 'videos/birthday.mp4', fileType: 'video/mp4', folder: 'videos', createdAt: new Date('2023-11-01').toISOString(), size: 150000000 },
   ],
   'documents/': [
-    { key: 'documents/resume.pdf', lastModified: new Date('2023-08-05'), size: 150000 },
-    { key: 'documents/project-plan.docx', lastModified: new Date('2023-10-20'), size: 750000 },
+    { id: 'mock4', owner: 'testuser', filename: 'resume.pdf', key: 'documents/resume.pdf', fileType: 'application/pdf', folder: 'documents', createdAt: new Date('2023-08-05').toISOString(), size: 150000 },
+    { id: 'mock5', owner: 'testuser', filename: 'project-plan.docx', key: 'documents/project-plan.docx', fileType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', folder: 'documents', createdAt: new Date('2023-10-20').toISOString(), size: 750000 },
   ],
 };
 
@@ -110,7 +114,8 @@ export const Auth = {
 
 // --- MOCK Amplify Storage ---
 export const Storage = {
-  async list(path: 'photos/' | 'videos/' | 'documents/'): Promise<FileItem[]> {
+  // FIX: Changed return type from FileItem[] to MediaItem[].
+  async list(path: 'photos/' | 'videos/' | 'documents/'): Promise<MediaItem[]> {
     return new Promise((resolve) => {
       setTimeout(() => {
         resolve(MOCK_DB[path] || []);
@@ -129,12 +134,23 @@ export const Storage = {
         }
         if (loaded >= total) {
           clearInterval(interval);
-          const newFile: FileItem = { key, size: file.size, lastModified: new Date() };
-          const folder = key.split('/')[0] + '/';
-          if (MOCK_DB[folder]) {
-            MOCK_DB[folder].push(newFile);
+          // FIX: Created a new MediaItem object to conform to the type.
+          const folderName = key.split('/')[0];
+          const newFile: MediaItem = {
+            id: `mock-${Date.now()}`,
+            key,
+            size: file.size,
+            createdAt: new Date().toISOString(),
+            filename: file.name,
+            fileType: file.type,
+            folder: folderName,
+            owner: MOCK_USER.username,
+          };
+          const folderPath = folderName + '/';
+          if (MOCK_DB[folderPath]) {
+            MOCK_DB[folderPath].push(newFile);
           } else {
-            MOCK_DB[folder] = [newFile];
+            MOCK_DB[folderPath] = [newFile];
           }
           resolve({ key });
         }
@@ -154,4 +170,3 @@ export const Storage = {
     });
   },
 };
-   

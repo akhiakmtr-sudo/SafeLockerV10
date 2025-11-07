@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
-import { User, FileItem, FolderType } from '../types';
-import { Storage } from '../services/amplifyService';
+import { User, MediaItem, FolderType } from '../types';
 import FolderView from '../components/FolderView';
 import UploadModal from '../components/UploadModal';
 import { PlusIcon } from '../components/icons/PlusIcon';
+import { listFiles } from '../storage/listFiles';
+import { deleteFile } from '../storage/deleteFile';
 
 interface DashboardPageProps {
   user: User;
@@ -12,23 +12,15 @@ interface DashboardPageProps {
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ user, onSignOut }) => {
-  const [photos, setPhotos] = useState<FileItem[]>([]);
-  const [videos, setVideos] = useState<FileItem[]>([]);
-  const [documents, setDocuments] = useState<FileItem[]>([]);
+  const [files, setFiles] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
     try {
-      const [photoFiles, videoFiles, documentFiles] = await Promise.all([
-        Storage.list('photos/'),
-        Storage.list('videos/'),
-        Storage.list('documents/'),
-      ]);
-      setPhotos(photoFiles);
-      setVideos(videoFiles);
-      setDocuments(documentFiles);
+      const allFiles = await listFiles();
+      setFiles(allFiles);
     } catch (error) {
       console.error('Error fetching files:', error);
     } finally {
@@ -40,18 +32,19 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onSignOut }) => {
     fetchFiles();
   }, [fetchFiles]);
   
-  const handleDelete = async (key: string, folder: FolderType) => {
+  const handleDelete = async (id: string, key: string) => {
     try {
-      await Storage.remove(key);
-      switch(folder) {
-        case 'Photos': setPhotos(prev => prev.filter(f => f.key !== key)); break;
-        case 'Videos': setVideos(prev => prev.filter(f => f.key !== key)); break;
-        case 'Documents': setDocuments(prev => prev.filter(f => f.key !== key)); break;
-      }
+      await deleteFile(id, key);
+      setFiles(prev => prev.filter(f => f.id !== id));
     } catch (error) {
         console.error('Failed to delete file', error);
+        alert('Failed to delete file. Please try again.');
     }
   };
+  
+  const photos = files.filter(f => f.folder === 'photos');
+  const videos = files.filter(f => f.folder === 'videos');
+  const documents = files.filter(f => f.folder === 'documents');
 
   return (
     <div className="min-h-screen relative pb-24">
@@ -79,9 +72,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onSignOut }) => {
           <p className="text-center text-gray-500">Loading files...</p>
         ) : (
           <div className="space-y-12">
-            <FolderView title="Photos" files={photos} onDelete={(key) => handleDelete(key, 'Photos')} />
-            <FolderView title="Videos" files={videos} onDelete={(key) => handleDelete(key, 'Videos')} />
-            <FolderView title="Documents" files={documents} onDelete={(key) => handleDelete(key, 'Documents')} />
+            <FolderView title="Photos" files={photos} onDelete={handleDelete} />
+            <FolderView title="Videos" files={videos} onDelete={handleDelete} />
+            <FolderView title="Documents" files={documents} onDelete={handleDelete} />
           </div>
         )}
       </main>
@@ -105,4 +98,3 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ user, onSignOut }) => {
 };
 
 export default DashboardPage;
-   

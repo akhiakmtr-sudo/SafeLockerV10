@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "uuid": "^13.0.0",
+    "aws-amplify": "^6.15.8"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

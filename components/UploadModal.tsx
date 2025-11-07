@@ -1,8 +1,5 @@
-import React, { useState, useCallback, ChangeEvent } from 'react';
-import { Storage } from '../services/amplifyService';
-import { PhotoIcon } from './icons/PhotoIcon';
-import { VideoIcon } from './icons/VideoIcon';
-import { DocumentIcon } from './icons/DocumentIcon';
+import React, { useState, ChangeEvent } from 'react';
+import { uploadFile } from '../storage/uploadFile';
 
 interface UploadModalProps {
   onClose: () => void;
@@ -16,9 +13,9 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUploadComplete }) 
   const [status, setStatus] = useState<UploadStatus>('idle');
   const [error, setError] = useState('');
   const [progress, setProgress] = useState<{ [key: string]: number }>({});
-  const totalProgress = files.length > 0 
-    // FIX: Explicitly type the accumulator and current value in the reduce function to resolve TypeScript inference issues.
-    ? Math.round(Object.values(progress).reduce((acc: number, p: number) => acc + p, 0) / (files.length * 100) * 100)
+  
+  const totalProgress = files.length > 0
+    ? Math.round(Object.values(progress).reduce((acc, p) => acc + p, 0) / files.length)
     : 0;
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -32,37 +29,29 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUploadComplete }) 
         return;
       }
 
-      // FIX: Explicitly type the accumulator and file object in the reduce function to ensure correct type checking for file properties.
-      const totalSize = selectedFiles.reduce((acc: number, file: File) => acc + file.size, 0);
+      const totalSize = selectedFiles.reduce((acc, file) => acc + file.size, 0);
       if (totalSize > 1 * 1024 * 1024 * 1024) { // 1 GB
         setError('Total file size cannot exceed 1 GB.');
         return;
       }
       
       setFiles(selectedFiles);
+      setProgress({});
     }
-  };
-
-  const getFolderPath = (file: File): string => {
-    if (file.type.startsWith('image/')) return 'photos/';
-    if (file.type.startsWith('video/')) return 'videos/';
-    return 'documents/';
   };
 
   const handleUpload = async () => {
     if (files.length === 0) return;
     setStatus('uploading');
-    setProgress({});
     
-    const uploadPromises = files.map(file => {
-        const folder = getFolderPath(file);
-        const key = `${folder}${file.name}`;
-        return Storage.put(key, file, {
-            progressCallback: (prog) => {
-                setProgress(prev => ({ ...prev, [file.name]: Math.round((prog.loaded / prog.total) * 100) }));
-            }
-        });
-    });
+    const uploadPromises = files.map(file => 
+        uploadFile(file, (prog) => {
+            setProgress(prev => ({ 
+                ...prev, 
+                [file.name]: Math.round((prog.loaded / prog.total) * 100) 
+            }));
+        })
+    );
 
     try {
         await Promise.all(uploadPromises);
@@ -71,6 +60,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUploadComplete }) 
     } catch (err) {
         setStatus('error');
         setError('An error occurred during upload.');
+        console.error(err);
     }
   };
 
@@ -117,7 +107,11 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onUploadComplete }) 
             {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
             <div className="flex justify-end space-x-3">
               <button onClick={onClose} className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300">Cancel</button>
-              <button onClick={handleUpload} disabled={files.length === 0} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed">Upload</button>
+              {/* FIX: Removed redundant `status === 'uploading'` check from disabled prop as it's always false in this code path. */}
+              <button onClick={handleUpload} disabled={files.length === 0} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-sm hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed">
+                {/* FIX: Removed redundant `status === 'uploading'` check from button text. */}
+                Upload
+              </button>
             </div>
           </>
         );

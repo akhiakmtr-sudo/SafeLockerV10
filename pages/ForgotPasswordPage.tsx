@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Page } from '../types';
-import { Auth } from '../services/amplifyService';
+import { useAuth } from '../auth/useAuth';
 
 interface ForgotPasswordPageProps {
   navigateTo: (page: Page) => void;
@@ -15,6 +14,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ navigateTo }) =
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const { resetPassword, confirmResetPassword } = useAuth();
 
   const validatePassword = (pw: string) => {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(pw);
@@ -25,7 +25,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ navigateTo }) =
     setError('');
     setLoading(true);
     try {
-      await Auth.forgotPassword(email);
+      await resetPassword({ username: email });
       setMessage('A verification code has been sent to your email.');
       setStep('reset');
     } catch (err: any) {
@@ -46,7 +46,7 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ navigateTo }) =
 
     setLoading(true);
     try {
-      await Auth.forgotPasswordSubmit(email, otp, newPassword);
+      await confirmResetPassword({ username: email, confirmationCode: otp, newPassword });
       setMessage('Password reset successfully! You can now log in.');
       setTimeout(() => navigateTo('login'), 2000);
     } catch (err: any) {
@@ -97,4 +97,3 @@ const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({ navigateTo }) =
 };
 
 export default ForgotPasswordPage;
-   

@@ -1,14 +1,12 @@
-
 import React, { useState } from 'react';
-import { Page, User } from '../types';
-import { Auth } from '../services/amplifyService';
+import { Page } from '../types';
+import { useAuth } from '../auth/useAuth';
 
 interface SignupPageProps {
   navigateTo: (page: Page) => void;
-  onSignupSuccess: (user: User) => void;
 }
 
-const SignupPage: React.FC<SignupPageProps> = ({ navigateTo, onSignupSuccess }) => {
+const SignupPage: React.FC<SignupPageProps> = ({ navigateTo }) => {
   const [step, setStep] = useState<'signup' | 'confirm'>('signup');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -16,6 +14,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ navigateTo, onSignupSuccess }) 
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { signUp, confirmSignUp, signIn } = useAuth();
 
   const validatePassword = (pw: string) => {
     return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(pw);
@@ -32,8 +31,19 @@ const SignupPage: React.FC<SignupPageProps> = ({ navigateTo, onSignupSuccess }) 
     
     setLoading(true);
     try {
-      await Auth.signUp({ name, email, password });
-      setStep('confirm');
+      const { nextStep } = await signUp({
+        username: email,
+        password,
+        options: {
+          userAttributes: {
+            name,
+            email,
+          },
+        }
+      });
+      if (nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+        setStep('confirm');
+      }
     } catch (err: any) {
       setError(err.message || 'Signup failed.');
     } finally {
@@ -46,10 +56,11 @@ const SignupPage: React.FC<SignupPageProps> = ({ navigateTo, onSignupSuccess }) 
     setError('');
     setLoading(true);
     try {
-      await Auth.confirmSignUp(email, otp);
-      const user = await Auth.signIn(email, password);
-      onSignupSuccess(user);
-      navigateTo('dashboard');
+      const { isSignUpComplete } = await confirmSignUp({ username: email, confirmationCode: otp });
+      if (isSignUpComplete) {
+        await signIn({ username: email, password });
+        navigateTo('dashboard');
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid OTP. Please try again.');
     } finally {
@@ -108,4 +119,3 @@ const SignupPage: React.FC<SignupPageProps> = ({ navigateTo, onSignupSuccess }) 
 };
 
 export default SignupPage;
-   
