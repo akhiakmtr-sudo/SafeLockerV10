@@ -1,7 +1,9 @@
 import { uploadData } from 'aws-amplify/storage';
-import { client } from 'aws-amplify/api';
+import { generateClient } from 'aws-amplify/api';
 import { createMediaItem as createMediaItemMutation } from '../api/graphql/mutations';
 import { v4 as uuid } from 'uuid';
+
+const client = generateClient();
 
 export const uploadFile = async (
   file: File,

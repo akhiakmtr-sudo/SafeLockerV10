@@ -1,6 +1,8 @@
 import { remove } from 'aws-amplify/storage';
-import { client } from 'aws-amplify/api';
+import { generateClient } from 'aws-amplify/api';
 import { deleteMediaItem as deleteMediaItemMutation } from '../api/graphql/mutations';
+
+const client = generateClient();
 
 export const deleteFile = async (id: string, key: string): Promise<void> => {
   try {

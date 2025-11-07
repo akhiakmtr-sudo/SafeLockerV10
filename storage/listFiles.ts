@@ -1,6 +1,8 @@
-import { client } from 'aws-amplify/api';
+import { generateClient } from 'aws-amplify/api';
 import { listMediaItems } from '../api/graphql/queries';
 import { MediaItem } from '../types';
+
+const client = generateClient();
 
 // Define a type for the expected GraphQL response structure.
 interface ListMediaItemsGraphQLResult {
