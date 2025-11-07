@@ -1,0 +1,5 @@
+{
+  "name": "Safe Locker",
+  "description": "A secure personal storage web application to upload, view, and manage your photos, videos, and documents with a clean and responsive interface.",
+  "requestFramePermissions": []
+}
